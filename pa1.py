@@ -1,47 +1,43 @@
 # Starter code for CS 165B HW2 Spring 2019
-def dot_product(a,b):
-    if(len(a)!=len(b)):
-        print("The length need to be the same")
+
+def centroid(data_set):
+    centroid_point = []
+    dimension = len(data_set[0])
+    point_sum = 0
+    result = 0
+    for d in range(dimension):
+        point_sum = 0
+        result = 0
+        for point in data_set:
+            point_sum += point[d]
+        result = point_sum / len(data_set)
+        centroid_point.append(result)
+    return centroid_point
+
+def dot_product(point1, point2):
+    if(len(point1) != len(point2)):
+        print("Error")
     else:
-        sum = 0
-        for i in range(len(a)):
-            sum+= a[i]*b[i]
-        return sum
+        result = 0
+        for i in range(len(point1)):
+            result += point1[i] * point2[i]
+        return result
 
-def get_w(a,b):
+def get_w(point1, point2):
     w = []
-    diff = []
-    for i in range(len(a)):
-        tem1 = a[i] - b[i]
-        w.append(tem1)
+    for i in range(len(point1)):
+        w.append(point1[i] - point2[i])
     return w
-    
-def get_t(a,b):
-    w = []
-    diff = []
-    for i in range(len(a)):
-        tem1 = a[i] - b[i]
-        tem2 = float(a[i]+b[i])/2
-        w.append(tem1)
-        diff.append(tem2)
-    t = dot_product(w,diff)
+
+def get_t(point1, point2):
+    t = 0
+    part1 = []
+    part2 = []
+    for i in range(len(point1)):
+        part1.append((point1[i] + point2[i]) / 2)
+        part2.append(point1[i] - point2[i])
+    t = dot_product(part1, part2)
     return t
-def get_cen(datas):
-    dim = len(datas[0])
-    cen = []
-    for i in range(dim):
-        sum = 0
-        for data in datas:
-            sum+=data[i]
-        cen.append(sum/len(datas))
-    return cen
-
-def discriminate(a,b):
-    cen_a = get_cen(a)
-    cen_b = get_cen(b)
-    return get_w(cen_a,cen_b)
-
-
 
 def run_train_test(training_input, testing_input):
     """
@@ -69,140 +65,144 @@ def run_train_test(training_input, testing_input):
                 "precision": #your_precision
             }
     """
+    # training class: get A/B/C length
+    training_A_length = training_input[0][1]
+    training_B_length = training_input[0][2]
+    training_C_length = training_input[0][3]
+    # get data for A/B/C
+    training_A_data = training_input[1 :training_A_length + 1]
+    training_B_data = training_input[training_A_length + 1 : training_A_length + training_B_length + 1]
+    training_C_data = training_input[training_A_length + training_B_length + 1 : training_A_length + training_B_length + training_C_length + 1]
+    centroid_A = centroid(training_A_data)
+    centroid_B = centroid(training_B_data)
+    centroid_C = centroid(training_C_data)
+
+
+    # testing class: get A/B/C length
+    testing_A_length = testing_input[0][1]
+    testing_B_length = testing_input[0][2]
+    testing_C_length = testing_input[0][3]
+    # get data for A/B/C
+    testing_A_data = testing_input[1 :testing_A_length + 1]
+    testing_B_data = testing_input[testing_A_length + 1 : testing_A_length + testing_B_length + 1]
+    testing_C_data = testing_input[testing_A_length + testing_B_length + 1 : testing_A_length + testing_B_length + testing_C_length + 1]
+
+    TP_A = 0
+    TP_B = 0
+    TP_C = 0
+    FP_A = 0
+    FP_B = 0
+    FP_C = 0
+    TN_A = 0
+    TN_B = 0
+    TN_C = 0
+    FN_A = 0
+    FN_B = 0
+    FN_C = 0
+    t_AB = get_t(centroid_A, centroid_B)
+    t_AC = get_t(centroid_A, centroid_C)
+    t_BC = get_t(centroid_B, centroid_C)
+    w_AB = get_w(centroid_A, centroid_B)
+    w_AC = get_w(centroid_A, centroid_C)
+    w_BC = get_w(centroid_B, centroid_C)
+
+    # class A
+    for point in testing_A_data:
+        if dot_product(w_AB, point) > t_AB:
+            if dot_product(w_AC, point) > t_AC:
+                TP_A += 1
+                TN_B += 1
+                TN_C += 1
+            else:
+                FN_A += 1
+                TN_B += 1
+                FP_C += 1
+        else:
+            if dot_product(w_BC, point) > t_BC:
+                FN_A += 1
+                FP_B += 1
+                TN_C += 1
+            else:
+                FN_A += 1
+                TN_B += 1
+                FP_C += 1
+    
+    # class B
+    for point in testing_B_data:
+        if dot_product(w_AB, point) > t_AB:
+            if dot_product(w_AC, point) > t_AC:
+                FP_A += 1
+                FN_B += 1
+                TN_C += 1
+            else:
+                TN_A += 1
+                FN_B += 1
+                FP_C += 1
+        else:
+            if dot_product(w_BC, point) > t_BC:
+                TN_A += 1
+                TP_B += 1
+                TN_C += 1
+            else:
+                TN_A += 1
+                FN_B += 1
+                FP_C += 1
+    # class C
+    for point in testing_C_data:
+        if dot_product(w_AB, point) > t_AB:
+            if dot_product(w_AC, point) > t_AC:
+                FP_A += 1
+                TN_B += 1
+                FN_C += 1
+            else:
+                TN_A += 1
+                TN_B += 1
+                TP_C += 1
+        else:
+            if dot_product(w_BC, point) > t_BC:
+                TN_A += 1
+                FP_B += 1
+                FN_C += 1
+            else:
+                TN_A += 1
+                TN_B += 1
+                TP_C += 1
+    
+    # true postive rate = TP / P (P = TP + FN)
+    TPR_A = float(TP_A) / (TP_A + FN_A)
+    TPR_B = float(TP_B) / (TP_B + FN_B)
+    TPR_C = float(TP_C) / (TP_C + FN_C)
+    TPR = (TPR_A + TPR_B + TPR_C) / 3
+
+    # false postive rate = FP / N (N = FP + TN)
+    FPR_A = float(FP_A) / (FP_A + TN_A)
+    FPR_B = float(FP_B) / (FP_B + TN_B)
+    FPR_C = float(FP_C) / (FP_C + TN_C)
+    FPR = (FPR_A + FPR_B + FPR_C) / 3
+
+    # error rate = (FP + FN) / (P + N)
+    error_rate_A = float(FP_A + FN_A) / (TP_A + FN_A + FP_A + TN_A)
+    error_rate_B = float(FP_B + FN_B) / (TP_B + FN_B + FP_B + TN_B)
+    error_rate_C = float(FP_C + FN_C) / (TP_C + FN_C + FP_C + TN_C)
+    error_rate = (error_rate_A + error_rate_B + error_rate_C) / 3
+
+    # accuracy = (TP + TN) / (P + N)
+    accuracy_A = float(TP_A + TN_A) / (TP_A + FN_A + FP_A + TN_A)
+    accuracy_B = float(TP_B + TN_B) / (TP_B + FN_B + FP_B + TN_B)
+    accuracy_C = float(TP_C + TN_C) / (TP_C + FN_C + FP_C + TN_C)
+    accuracy = (accuracy_A + accuracy_B + accuracy_C) / 3
+
+    # precision = TP / P_estimated
+    precision_A = float(TP_A) / (TP_A + FP_A)
+    precision_B = float(TP_B) / (TP_B + FP_B)
+    precision_C = float(TP_C) / (TP_C + FP_C)
+    precision = (precision_A + precision_B + precision_C) / 3
+
     result = {}
-    train_anum = training_input[0][1]
-    train_bnum = training_input[0][2]
-
-    train_a = training_input[1:train_anum+1]
-    train_b = training_input[train_anum+1:train_anum+train_bnum+1]
-    train_c = training_input[train_anum+train_bnum+1:]
-
-    dis_ab = discriminate(train_a,train_b)
-    dis_ac = discriminate(train_a,train_c)
-    dis_bc = discriminate(train_b,train_c)
-
-    test_anum = testing_input[0][1]
-    test_bnum = testing_input[0][2]
-    test_cnum = testing_input[0][3]
-
-    #for i in range(1,len(testing_input)):
-    #    testing_input[i].append(1)
-    t1 = get_cen(train_a)
-    t2 = get_cen(train_b)
-    t3 = get_cen(train_c)
-    t_ab = get_t(t1,t2)
-    t_ac = get_t(t1,t3)
-    t_bc = get_t(t2,t3)
-
-
-    test_a = testing_input[1:test_anum+1]
-    test_b = testing_input[test_anum+1:test_anum+test_bnum+1]
-    test_c = testing_input[test_anum+test_bnum+1:]
-
-    TPA = 0
-    FPA = 0
-    FNA = 0
-
-    FNB = 0
-    TPB = 0
-    FPB = 0
-
-    FNC = 0
-    TPC = 0
-    FPC = 0
-
-    TNA  = 0
-    TNB = 0
-    TNC = 0
-
-    for data in test_a:
-        if(dot_product(dis_ab,data)>=t_ab):
-            if(dot_product(dis_ac,data)>=t_ac):
-                TPA+=1
-                TNB+=1
-                TNC+=1
-            else:
-                FNA+=1
-                TNB+=1
-                FPC+=1
-        else:
-            if(dot_product(dis_bc,data)>=t_bc):
-                FNA+=1
-                FPB+=1
-                TNC+=1
-            else:
-                FNA+=1
-                TNB+=1
-                FPC+=1
-    for data in test_b:
-        if(dot_product(dis_ab,data)>=t_ab):
-            if(dot_product(dis_ac,data)>=t_ac):
-                FPA+=1
-                FNB+=1
-                TNC+=1
-            else:
-                TNA+=1
-                FNB+=1
-                FPC+=1
-        else:
-            if(dot_product(dis_bc,data)>=t_bc):
-                TNA+=1
-                TPB+=1
-                TNC+=1
-            else:
-                TNA+=1
-                FNB+=1
-                FPC+=1
-    for data in test_c:
-        if(dot_product(dis_ab,data)>=t_ab):
-            if(dot_product(dis_ac,data)>=t_ac):
-                FPA+=1
-                TNB+=1
-                FNC+=1
-            else:
-                TNA+=1
-                TNB+=1
-                TPC+=1
-        else:
-            if(dot_product(dis_bc,data)>=t_bc):
-                TNA+=1
-                FPB+=1
-                FNC+=1
-            else:
-                TNA+=1
-                TNB+=1
-                TPC+=1
-
-    TPRA = float(TPA)/(TPA+FNA)
-    TPRB = float(TPB)/(TPB+FNB)
-    TPRC = float(TPC)/(TPC+FNC)
-    TPR = (TPRA+TPRB+TPRC)/3
-
-    FPRA = float(FPA)/(FPA+TNA)
-    FPRB = float(FPB)/(FPB+TNB)
-    FPRC = float(FPC)/(FPC+TNC)
-    FPR = (FPRA+FPRB+FPRC)/3
-
-    E_A = float(FPA+FNA)/(TPA+FPA+FNA+TNA)
-    E_B = float(FPB+FNB)/(TPB+FPB+FNB+TNB)
-    E_C = float(FPC+FNC)/(TPC+FPC+FNC+TNC)
-    ER = (E_A+E_B+E_C)/3
-
-    ACC_A = float(TPA+TNA)/(TPA+FPA+FNA+TNA)
-    ACC_B = float(TPB+TNB)/(TPB+FPB+FNB+TNB)
-    ACC_C = float(TPC+TNC)/(TPC+FPC+FNC+TNC)
-    ACC = (ACC_A+ACC_B+ACC_C)/3
-
-    P_A = float(TPA)/(TPA+FPA)
-    P_B = float(TPB)/(TPB+FPB)
-    P_C = float(TPC)/(TPC+FPC)
-    PRE = (P_A+P_B+P_C)/3
-
-    result["tpr"] = TPR
     result["fpr"] = FPR
-    result["error_rate"] = ER
-    result["accuracy"] = ACC
-    result["precision"] = PRE
+    result["tpr"] = TPR
+    result["error_rate"] = error_rate
+    result["accuracy"] = accuracy
+    result["precision"] = precision
 
     return result
-
